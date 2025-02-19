@@ -1,7 +1,7 @@
 <template>
   <div class="login-container">
     <div class="form-wrapper">
-      <h2 class="title">登录</h2>
+      <h2 class="title">登录 / Login</h2>
       <form @submit.prevent="handleLogin">
         <div class="form-group">
           <label for="username">用户名</label>
@@ -54,7 +54,7 @@
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background: linear-gradient(135deg, #ffe88dd2, #bcd7ff);
+    background: linear-gradient(135deg, #ffdfe1d2, #bcd7ff);
     padding: 2rem;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     width: 100%;
@@ -125,7 +125,7 @@
   }
 
   .footer a {
-    color: #42b983;
+    color: #999;
     margin: 0 1rem;
     text-decoration: none;
   }

@@ -1,12 +1,13 @@
 <template>
   <div class="app">
-    <!-- <RouterView></RouterView> -->
-    <Login/>
+    <RouterView></RouterView>
+    <!-- <Login/> -->
   </div>
 </template>
 
 <script lang="ts">
   import Login from './components/Login.vue'
+  import { RouterView } from 'vue-router';
   export default {
     name: "App",
     components:{Login}
