@@ -11,14 +11,19 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
+    "@types/marked": "^5.0.2",
     "@vicons/ionicons5": "^0.13.0",
+    "dompurify": "^3.2.4",
     "i": "^0.3.7",
+    "markdown-it": "^14.1.0",
+    "marked": "^15.0.7",
     "naive-ui": "^2.41.0",
     "vite-plugin-vue-setup-extend": "^0.4.0",
     "vue": "^3.5.13"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.0",
+    "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.13.4",
     "@types/vue-router": "^2.0.0",
     "@vitejs/plugin-vue": "^5.2.1",

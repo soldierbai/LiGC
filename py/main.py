@@ -116,7 +116,14 @@ def chat(inputs, messages, model="deepseek-r1:32b", intention_model="deepseek-r1
     else:
         relations = ""
     # print(relations)
+    thinking = True
 
+    for i in range(len(messages)):
+        if messages[i].get('role') == 'user':
+            del messages[i]['thinking_content']
+        elif messages[i].get('role') == 'assistant':
+            messages[i]['content'] = '<think>' + messages[i]['thinking_content'] + '</think>' + messages[i]['content']
+            del messages[i]['thinking_content']
     messages.append({"role": "user", "content": relations + inputs})
 
     data = {"model": model, "messages": messages, "stream": True}
@@ -124,7 +131,24 @@ def chat(inputs, messages, model="deepseek-r1:32b", intention_model="deepseek-r1
     with requests.post(ds_url, json=data, stream=True) as response:
         if response.status_code == 200:
             for chunk in response.iter_lines():
-                yield chunk.decode("utf-8")  # 直接yield原始数据块[1](@ref)
+                chunk = json.loads(chunk.decode('utf-8').strip())
+                if chunk['message']['content'] == '</think>':
+                    thinking = False
+                if chunk['message']['content'] == '<think>' or chunk['message']['content'] == '</think>':
+                    continue
+                if thinking:
+                    chunk['message'] = {
+                            'role': 'assistant',
+                            'content': None,
+                            'thinking_content': chunk['message'].get('content')
+                    }
+                else:
+                    chunk['message'] = {
+                            'role': 'assistant',
+                            'content': chunk['message'].get('content'),
+                            'thinking_content': None
+                    }
+                yield chunk
         else:
             yield json.dumps({"error": "模型服务异常"}), 500
 
@@ -140,7 +164,7 @@ def api_chat():
 
         def generate():
             for chunk in chat(inputs, messages, model, intention_model):
-                yield f"{chunk}"
+                yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
         return Response(generate(), mimetype='text/event-stream')
 

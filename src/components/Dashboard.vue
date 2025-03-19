@@ -52,12 +52,17 @@
           :class="{ 'user-msg': msg.role === 'user' }"
         >
           <div class="content">
-            <div class="text">{{ msg.content }}</div>
+            <div v-if="msg.role === 'user'" class="text">{{ msg.content }}</div>
+            <div v-else>
+              <div class="black-box">
+                <div v-if="msg.thinking_content" v-html="formatMarkdown(msg.thinking_content)"></div>
+              </div>
+              <div v-if="msg.content" v-html="formatMarkdown(msg.content)" class="text"></div>
+            </div>
           </div>
         </div>
       </div>
-  
-      <!-- 输入区域 -->
+
       <div class="input-area">
         <div class="input-wrapper">
           <n-input
@@ -70,7 +75,7 @@
           <n-button
             type="primary"
             class="send-btn"
-            :disabled="!inputText"
+            :disabled="!inputText || outputting"
             @click="sendMessage"
           >
             发送
@@ -92,7 +97,6 @@ import {
   NTag, 
   NTime, 
   NIcon, 
-  NAvatar,
   NInput
 } from 'naive-ui'
 import { 
@@ -102,6 +106,7 @@ import {
   EllipsisHorizontal as MoreIcon,
   TrashOutline as DeleteIcon
 } from '@vicons/ionicons5'
+import MarkdownIt from 'markdown-it'
 
 interface ChatHistory {
   id: string
@@ -114,12 +119,14 @@ interface ChatHistory {
 
 interface ChatMessage {
   content: string
+  thinking_content: string
   role: 'user' | 'assistant'
 }
 
 // 响应式数据
 const inputText = ref('')
 const activeIndex = ref(0)
+const outputting = ref(false)
 
 // 生成随机ID
 const generateRandomId = (): string => {
@@ -127,36 +134,24 @@ const generateRandomId = (): string => {
 }
 
 // 历史记录数据
-const mockHistory = ref<ChatHistory[]>([
-  {
-    id: generateRandomId(),
-    title: '首次对话',
-    model: 'GPT-4',
-    type: 'success',
-    time: Date.now() - 3600000, // 1小时前
-    messages: [
-      { content: '你好！有什么可以帮你的吗？', role: 'assistant' },
-      { content: '我想了解一下天气情况。', role: 'user' },
-      { content: '今天天气晴朗，温度适宜。', role: 'assistant' }
-    ]
-  },
-  {
-    id: generateRandomId(),
-    title: '第二次对话',
-    model: 'Deepseek',
-    type: 'info',
-    time: Date.now() - 7200000, // 2小时前
-    messages: [
-      { content: '你好！', role: 'assistant' },
-      { content: '我想订一张机票。', role: 'user' }
-    ]
-  }
-])
+const mockHistory = ref<ChatHistory[]>([])
 
 // 消息记录
 const mockMessages = ref<ChatMessage[]>([])
 
+// Markdown解析器
+const md = new MarkdownIt()
 
+// 格式化Markdown内容
+const formatMarkdown = (content: string): string => {
+  // 如果内容包含<think>...</think>标签，提取标签内的内容
+  if (content.includes('<think>') && content.includes('</think>')) {
+    const start = content.indexOf('<think>') + '<think>'.length;
+    const end = content.indexOf('</think>');
+    content = content.substring(start, end);
+  }
+  return md.render(content);
+}
 // 设置当前激活的对话
 const setActiveChat = (index: number) => {
   activeIndex.value = index
@@ -191,28 +186,104 @@ const deleteHistory = (id: string) => {
   }
 }
 
-// 发送消息（暂时为空，后续与接口交互）
-const sendMessage = () => {
+// 修改后的sendMessage函数
+const sendMessage = async () => {
   if (!inputText.value.trim()) return
-  // 模拟发送消息逻辑
-  const newMessage: ChatMessage = {
+
+  outputting.value = true
+  // 创建用户消息
+  const userMessage: ChatMessage = {
     content: inputText.value,
+    thinking_content: '',
     role: 'user'
   }
-  mockMessages.value.push(newMessage)
-  inputText.value = ''
+  
+  // 创建初始助手消息
+  const assistantMessage: ChatMessage = {
+    content: '',
+    thinking_content: '',
+    role: 'assistant'
+  }
+  
 
-  // 模拟助手回复（后续替换为接口调用）
-  setTimeout(() => {
-    const assistantMessage: ChatMessage = {
-      content: '这是一个模拟的助手回复。',
-      role: 'assistant'
+  const history_messages = mockMessages.value
+  
+
+  // 更新消息列表
+  mockMessages.value.push(userMessage)
+  mockMessages.value.push(assistantMessage)
+    
+  // 清空输入
+  inputText.value = ''
+  console.log(mockMessages.value)
+
+  try {
+    
+    const response = await fetch('http://127.0.0.1:5010/api/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: userMessage.content,
+        messages: history_messages
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
-    mockMessages.value.push(assistantMessage)
-  }, 500)
+
+    const reader = response.body?.getReader()
+    if (!reader) return
+
+    const assistantIndex = mockMessages.value.length - 1
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      // 解码数据块
+      const chunk = new TextDecoder().decode(value)
+      try {
+        // 处理SSE格式数据
+        chunk.split('\n\n').forEach(event => {
+          const match = event.match(/data:\s*(\{.*\})/)
+          if (match) {
+            
+            const data = JSON.parse(match[1])
+            console.log(data.message)
+            if (data.message.content) {
+              // 拼接内容
+              mockMessages.value[assistantIndex].content += data.message.content
+              // 触发视图更新
+              mockMessages.value = [...mockMessages.value]
+            }
+            else if (data.message.thinking_content) {
+              // 拼接内容
+              mockMessages.value[assistantIndex].thinking_content += data.message.thinking_content
+              // 触发视图更新
+              mockMessages.value = [...mockMessages.value]
+            }
+          }
+        })
+      } catch (e) {
+        console.error('JSON解析错误:', e)
+        mockMessages.value[assistantIndex].content += '\n[解析错误]'
+        outputting.value = false
+        return
+      }
+    }
+  } catch (error) {
+    const assistantIndex = mockMessages.value.length - 1
+    console.error('请求失败:', error)
+    mockMessages.value[assistantIndex].content += '\n[请求失败，请检查接口]'
+    outputting.value = false
+    return
+  }
+  outputting.value = false
 }
 </script>
-
 
 <style scoped>
 .chat-container {
@@ -327,50 +398,51 @@ const sendMessage = () => {
     }
 }
 
-  .input-area {
-    position: relative;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(220, 220, 220, 0.2);
-    padding: 1rem;
-    display: flex;
-    align-items: center;
-  }
+.input-area {
+  position: relative;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(220, 220, 220, 0.2);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+}
 
-  .input-wrapper {
-    display: flex;
-    width: 100%;
-    gap: 1rem; /* 添加间距替代右侧padding */
-  }
+.input-wrapper {
+  display: flex;
+  width: 100%;
+  gap: 1rem;
+}
 
-  input-area .n-input {
-    flex: 1 1 auto;
-    /* 移除所有边框相关样式 */
-    border: none !important; /* 强制移除边框 */
-    border-color: transparent !important; /* 额外保险 */
-    outline: none !important; /* 同时移除聚焦轮廓 */
-    border-radius: 20px; /* 保持圆角效果 */
-    padding: 0.8rem;
-    background: transparent;
-  }
+input-area .n-input {
+  flex: 1 1 auto;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  padding: 0.8rem;
+  background: transparent;
+}
 
-  input-area .send-btn {
-    flex-shrink: 0; /* 防止按钮被压缩 */
-    padding: 0.6rem 1.8rem;
-    justify-content: center; /* 水平居中按钮内容 */
-    background: #007bff; /* 建议添加基础按钮颜色 */
-    color: white;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: background 0.2s; /* 添加交互反馈 */
-  }
+
+input-area .send-btn {
+  flex-shrink: 0; /* 防止按钮被压缩 */
+  padding: 0.6rem 1.8rem;
+  justify-content: center; /* 水平居中按钮内容 */
+  background: #007bff; /* 建议添加基础按钮颜色 */
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s; /* 添加交互反馈 */
+}
+
 
 input-area .send-btn:hover {
   transform: scale(1.05);
   box-shadow: 0 3px 8px rgba(66, 185, 131, 0.4);
 }
+
 
 input-area .send-btn:disabled {
   background: #e0e0e0;
@@ -378,14 +450,28 @@ input-area .send-btn:disabled {
   box-shadow: none;
 }
 
+
 /* 新增动画效果 */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
+
 .message-bubble {
     animation: fadeIn 0.3s ease-out;
+}
+
+
+/* 实时更新时的闪烁效果 */
+.message-bubble:last-child {
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0% { background-color: rgba(245,245,245,0.1); }
+  50% { background-color: rgba(245,245,245,0.3); }
+  100% { background-color: rgba(245,245,245,0.1); }
 }
 
 /* 响应式优化 */
@@ -401,26 +487,43 @@ input-area .send-btn:disabled {
     }
 }
 
+
 .item-footer {
-  display: flex;                  /* 使用 Flexbox 布局 */
-  justify-content: space-between; /* 将子元素分布在容器的两端 */
-  align-items: center;            /* 垂直居中对齐子元素 */
-  padding: 8px 16px;              /* 可选：增加内边距以提升美观性 */
+  display: flex;                  
+  justify-content: space-between; 
+  align-items: center;            
+  padding: 8px 16px;              
 }
 
+
 .time-element {
-  /* 可选：根据需要调整时间的样式 */
   font-size: 14px;
   color: #666;
 }
 
+
 .action-icon {
-  cursor: pointer;                /* 鼠标悬停时显示为手形 */
-  transition: all 0.3s ease;      /* 添加过渡效果，使变化更平滑 */
+  cursor: pointer;          
+  transition: all 0.3s ease;
 }
 
+
 .action-icon:hover {
-  transform: scale(1.1);          /* 悬停时放大图标 */
-  color: rgb(254, 97, 97);                     /* 悬停时改变图标颜色 */
+  transform: scale(1.1);   
+  color: rgb(223, 81, 81);
 }
+
+.black-box {
+  color: rgb(79, 79, 79);
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  margin: 10px;
+  margin-left: 0px;
+  
+  border-left: 4px solid rgba(163, 163, 163, 0.5);
+  font-size:13px;
+}
+
 </style>
