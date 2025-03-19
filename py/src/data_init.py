@@ -1,19 +1,35 @@
 import csv
 import json
 from tqdm import tqdm
-from multiprocessing import Pool, cpu_count
 import torch
+from transformers import AutoTokenizer, AutoModelForMaskedLM
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from config import *
-from es import *
+from .config import data_path, data_path_json, bert_model_path
 
-tokenizer = AutoTokenizer.from_pretrained("../chinese-roberta-wwm-ext")
-model_bert = AutoModelForMaskedLM.from_pretrained("../chinese-roberta-wwm-ext", output_hidden_states=True)
+
+tokenizer = AutoTokenizer.from_pretrained(bert_model_path)
+model_bert = AutoModelForMaskedLM.from_pretrained(bert_model_path, output_hidden_states=True)
+
+
+def get_embedding(text, tokenizer, model_bert):
+    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=256)
+
+    with torch.no_grad(), torch.amp.autocast(device_type='cuda', dtype=torch.float16):
+        outputs = model_bert(**inputs)
+        last_hidden_state = outputs.hidden_states[-1]
+
+        # 只取 CLS token 的嵌入
+        cls_embedding = last_hidden_state[:, 0, :].cpu().numpy()
+        cls_embedding = cls_embedding.reshape(1, 1, cls_embedding.shape[1])  # Reshape
+
+    return cls_embedding.tolist()[0][0]
+
 
 def process_row(args):
     row, tokenizer, model_bert = args
     row["CR Vector"] = get_embedding(row["CR主题"])
     return row
+
 
 def csv_to_json(csv_file_path, json_file_path):
     data = []
@@ -32,10 +48,9 @@ def csv_to_json(csv_file_path, json_file_path):
                 data.append(result)
                 progress.update(1)
 
-    print(data[0])
     with open(json_file_path, mode='w', encoding='gbk') as jsonfile:
         json.dump(data, jsonfile, indent=4, ensure_ascii=False)
 
 
 if __name__ == '__main__':
-    csv_to_json(file_path, file_path_json)
+    csv_to_json(data_path, data_path_json)

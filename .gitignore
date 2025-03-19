@@ -788,6 +788,12 @@ FodyWeavers.xsd
 
 .git
 .git/
+**/.git/
+
+
+**/chinese-roberta-wwm-ext/
+
+**/config.py
 
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio

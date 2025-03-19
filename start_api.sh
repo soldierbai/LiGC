@@ -1,9 +1,5 @@
-cd es
-
-bash bin/elasticsearch
-
+bash es/bin/elasticsearch
 ollama serve
-
 python py/main.py
 
 

@@ -1,9 +1,9 @@
 import numpy as np
 from elasticsearch import Elasticsearch
 import torch
+from .config import USER, PASSWORD
 
-USER = "elastic"
-PASSWORD = "H2iI=w8=OE237yvddaJX"
+
 es = Elasticsearch(
     hosts=["http://localhost:9200"],
     basic_auth=(USER, PASSWORD),
