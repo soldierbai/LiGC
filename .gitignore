@@ -795,6 +795,9 @@ FodyWeavers.xsd
 
 **/config.py
 
+es/
+**/es/
+
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 
