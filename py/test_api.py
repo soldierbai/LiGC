@@ -13,12 +13,13 @@ with requests.post(url, json=payload, stream=True, verify=False) as response:
             if chunk:
                 chunk = chunk.decode("utf-8")
                 try:
+                    chunk = chunk.strip('\n\n').strip('\n').strip('data:').strip(' ')
                     chunk_json = json.loads(chunk)
-                    # message = chunk_json.get("message", {})
-                    # content = message.get("content", "")
-                    # if content:
-                    #     print(content, end="", flush=True)
-                    print(chunk_json)
+                    message = chunk_json.get("message", {})
+                    content = message.get("content", "")
+                    if content:
+                        print(content, end="", flush=True)
+                    # print(chunk_json)
                 except json.JSONDecodeError:
                     print("Error decoding JSON chunk:", chunk)
     else:

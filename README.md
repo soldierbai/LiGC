@@ -81,3 +81,37 @@ def get_embedding(text, tokenizer, model_bert):
     return cls_embedding.tolist()[0][0]
 ```
 ## 数据准备
+
+首先存储原始csv数据，在 `py/scr` 下新建文件 `config.py` 设置es基本信息和数据、模型路径等信息：
+```python config.py
+USER = "elastic"
+PASSWORD = "xxx"
+
+data_path = 'py/data/DATA.csv'
+data_path_json = 'py/data/DATA.json'
+bert_model_path = 'py/chinese-roberta-wwm-ext'
+ds_url = "http://localhost:11434/api/chat"
+```
+然后执行：
+```bash
+python py/src/data_init.py
+```
+
+此脚本会在 `data_path_json` 生成带有向量字段的json数据。完成后执行：
+
+```bash
+python py/src/data_insert.py
+```
+
+```text
+成功连接到Elasticsearch！
+索引 cr_index 已删除。
+索引 cr_index 已创建。
+
+成功插入 109200 条数据，失败 0 条数据
+所有文档插入成功！
+```
+
+至此向量数据库建立成功
+
+## 启动API

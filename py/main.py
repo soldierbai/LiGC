@@ -140,7 +140,7 @@ def api_chat():
 
         def generate():
             for chunk in chat(inputs, messages, model, intention_model):
-                yield f"data: {chunk}\n\n"
+                yield f"{chunk}"
 
         return Response(generate(), mimetype='text/event-stream')
 

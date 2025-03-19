@@ -797,6 +797,7 @@ FodyWeavers.xsd
 
 es/
 **/es/
+**/es/*
 
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
