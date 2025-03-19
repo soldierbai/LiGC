@@ -799,6 +799,9 @@ es/
 **/es/
 **/es/*
 
+.vscode/
+.idea/
+
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 

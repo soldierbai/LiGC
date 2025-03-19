@@ -10,6 +10,11 @@
 - Embedding：chinese-roberta-wwm-ext
 - 数据库：ElasticSearch、MySQL
 
+## 项目展示
+登陆页：
+![登陆页面](./related_files/login.png)
+注册页：
+![注册页面](./related_files/register.png)
 ## 环境准备
 
 ```bash
@@ -115,3 +120,53 @@ python py/src/data_insert.py
 至此向量数据库建立成功
 
 ## 启动API
+
+执行：
+```bash
+python py/main.py
+```
+
+```bash
+(.venv) root@xxx LiGC % python py/main.py
+Some weights of the model checkpoint at py/chinese-roberta-wwm-ext were not used when initializing BertForMaskedLM: ['bert.pooler.dense.bias', 'bert.pooler.dense.weight', 'cls.seq_relationship.bias', 'cls.seq_relationship.weight']
+- This IS expected if you are initializing BertForMaskedLM from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForMaskedLM from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+ * Serving Flask app 'main'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5010
+ * Running on http://xxx.xxx.xxx.xxx:5010
+Press CTRL+C to quit
+```
+此脚本会在本地使用5010端口启动一个流式输出的api
+
+检查api可用性：
+```python
+import json
+import requests
+
+url = 'http://127.0.0.1:5010/api/chat/completions'
+
+payload = {
+    'inputs': '帮我找下消防隐患的相关记录'
+}
+
+with requests.post(url, json=payload, stream=True, verify=False) as response:
+    if response.status_code == 200:
+        for chunk in response.iter_lines():
+            if chunk:
+                chunk = chunk.decode("utf-8")
+                try:
+                    chunk = chunk.strip('\n\n').strip('\n').strip('data:').strip(' ')
+                    chunk_json = json.loads(chunk)
+                    message = chunk_json.get("message", {})
+                    content = message.get("content", "")
+                    if content:
+                        print(content, end="", flush=True)
+                    # print(chunk_json)
+                except json.JSONDecodeError:
+                    print("Error decoding JSON chunk:", chunk)
+    else:
+        print(response.text)
+```
