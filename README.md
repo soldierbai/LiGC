@@ -207,6 +207,6 @@ soldierbai@xxx LiGC % npm  run dev
 python py/src/main.py
 ```
 训练效果：
-![损失曲线](related_files/loss.jpg)
+![损失曲线](./related_files/loss.jpg)
 准确率：
-![准确率](related_files/acc.jpg)
+![准确率](./related_files/acc.jpg)
