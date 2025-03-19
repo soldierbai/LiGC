@@ -15,6 +15,10 @@
 ![登陆页面](./related_files/login.png)
 注册页：
 ![注册页面](./related_files/register.png)
+效果展示-故障记录查询：
+![效果展示](./related_files/show.jpg)
+效果展示-机器学习编码预测：
+![效果展示2](./related_files/show2.jpg)
 ## 环境准备
 
 ```bash

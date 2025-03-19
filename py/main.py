@@ -9,7 +9,7 @@ import re
 import json
 
 app = Flask(__name__)
-CORS(app, resources=r'/*')  # 允许所有来源的跨域请求[1](@ref)
+CORS(app, resources=r'/*')
 
 warnings.filterwarnings('ignore')
 tokenizer = AutoTokenizer.from_pretrained("py/chinese-roberta-wwm-ext")
