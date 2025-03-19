@@ -5,19 +5,6 @@ url = 'http://127.0.0.1:5010/api/chat/completions'
 
 payload = {
     'inputs': '帮我找下消防隐患的相关记录',
-    'messages': [
-        {
-            'role': 'user',
-            'content': '你好',
-            'thinking_content':''
-        },
-        {
-            'role': 'assistant',
-            'content': '你好',
-            'thinking_content': '我需要帮助用户'
-        }
-
-    ]
 
 }
 

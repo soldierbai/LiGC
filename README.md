@@ -131,7 +131,7 @@ python py/main.py
 ```
 
 ```bash
-(.venv) root@xxx LiGC % python py/main.py
+(.venv) soldierbai@xxx LiGC % python py/main.py
 Some weights of the model checkpoint at py/chinese-roberta-wwm-ext were not used when initializing BertForMaskedLM: ['bert.pooler.dense.bias', 'bert.pooler.dense.weight', 'cls.seq_relationship.bias', 'cls.seq_relationship.weight']
 - This IS expected if you are initializing BertForMaskedLM from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
 - This IS NOT expected if you are initializing BertForMaskedLM from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
@@ -153,7 +153,8 @@ import requests
 url = 'http://127.0.0.1:5010/api/chat/completions'
 
 payload = {
-    'inputs': '帮我找下消防隐患的相关记录'
+    'inputs': '帮我找下消防隐患的相关记录',
+
 }
 
 with requests.post(url, json=payload, stream=True, verify=False) as response:
@@ -164,13 +165,38 @@ with requests.post(url, json=payload, stream=True, verify=False) as response:
                 try:
                     chunk = chunk.strip('\n\n').strip('\n').strip('data:').strip(' ')
                     chunk_json = json.loads(chunk)
-                    message = chunk_json.get("message", {})
-                    content = message.get("content", "")
-                    if content:
-                        print(content, end="", flush=True)
-                    # print(chunk_json)
+                    # message = chunk_json.get("message", {})
+                    # content = message.get("content", "")
+                    # if content:
+                    #     print(content, end="", flush=True)
+                    print(chunk_json)
                 except json.JSONDecodeError:
                     print("Error decoding JSON chunk:", chunk)
     else:
         print(response.text)
 ```
+
+## 启动主程序
+根目录下执行：
+```bash
+npm run dev
+```
+
+```bash
+soldierbai@xxx LiGC % npm  run dev                  
+
+> ds-rag@0.0.0 dev
+> vite
+
+
+  VITE v6.1.0  ready in 439 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  Vue DevTools: Open http://localhost:5173/__devtools__/ as a separate window
+  ➜  Vue DevTools: Press Option(⌥)+Shift(⇧)+D in App to toggle the Vue DevTools
+  ➜  press h + enter to show help
+```
+
+即可在 `http://localhost:5173/` 中体验本项目全部功能。
+
