@@ -200,3 +200,13 @@ soldierbai@xxx LiGC % npm  run dev
 
 即可在 `http://localhost:5173/` 中体验本项目全部功能。
 
+
+## 分类模型
+### 分类模型训练
+```bash
+python py/src/main.py
+```
+训练效果：
+![损失曲线](related_files/loss.jpg)
+准确率：
+![准确率](related_files/acc.jpg)
