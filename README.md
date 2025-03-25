@@ -206,7 +206,7 @@ npm run dev
 ```
 
 ```text
-soldierbai@xxx LiGC % npm  run dev                  
+soldierbai@xxx LiGC % npm run dev                  
 
 > ds-rag@0.0.0 dev
 > vite
