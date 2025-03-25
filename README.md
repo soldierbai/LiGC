@@ -2,23 +2,46 @@
 
 ## 项目简介
 
-本项目用于特定数据集（电厂故障记录）与Deepseek结合，通过RAG（检索增强生成）帮助用户检索、总结、查找并提供其他帮助的智能AI系统。所使用的技术栈包括：
+本项目旨在通过结合特定数据集（电厂故障记录）与DeepSeek模型，利用RAG（检索增强生成）技术，帮助用户进行检索、总结、查找及其他相关操作。以下是项目所使用的技术栈：
 
-- 前端：Vue3、TypeScript
-- 后端：python Flask requests Pytorch transformer
-- LLM：Ollama部署的Deepseek-R1蒸馏版
-- Embedding：chinese-roberta-wwm-ext
-- 数据库：ElasticSearch、MySQL
+### 前端
+- ​**框架**: Vue3
+- ​**语言**: TypeScript
+
+### 后端
+- ​**框架**: Python Flask
+- ​**库**: Requests, PyTorch, Transformer
+
+### 大语言模型 (LLM)
+- ​**模型**: DeepSeek-R1蒸馏版
+- ​**部署**: Ollama
+
+### 嵌入模型
+- ​**模型**: Chinese-RoBERTa-wwm-ext
+
+### 数据库
+- ​**搜索引擎**: ElasticSearch
+- ​**关系型数据库**: MySQL
 
 ## 项目展示
 登陆页：
 ![登陆页面](./related_files/login.png)
+
 注册页：
+
 ![注册页面](./related_files/register.png)
+
 效果展示-故障记录查询：
+
 ![效果展示](./related_files/show.jpg)
+
 效果展示-机器学习编码预测：
+
 ![效果展示2](./related_files/show2.jpg)
+
+效果展示-机器学习编码预测：（添加分类模型后）
+![效果展示3](./related_files/show3.jpg)
+![效果展示4](./related_files/show4.jpg)
 ## 环境准备
 
 ```bash
@@ -182,7 +205,7 @@ with requests.post(url, json=payload, stream=True, verify=False) as response:
 npm run dev
 ```
 
-```bash
+```text
 soldierbai@xxx LiGC % npm  run dev                  
 
 > ds-rag@0.0.0 dev
@@ -216,3 +239,127 @@ python py/src/main.py
 ![准确率](./related_files/acc.jpg)
 
 ### 分类模型推理
+```python
+from transformers import AutoTokenizer, AutoModelForMaskedLM
+from sklearn.preprocessing import LabelEncoder
+import pandas as pd
+import torch.nn as nn
+import torch
+
+class TextClassifier(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers=2, dropout=0.5):
+        super(TextClassifier, self).__init__()
+        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True, dropout=dropout)
+        self.fc = nn.Linear(hidden_dim, output_dim)
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, x):
+        # x: (batch_size, seq_len, input_size)
+        x, (hn, cn) = self.lstm(x)
+        x = self.dropout(hn[-1])  # 取 LSTM 最后一个隐层的输出
+        x = self.fc(x)
+        return x
+
+def get_embedding(text, tokenizer, model_bert):
+    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=256)
+
+    with torch.no_grad(), torch.amp.autocast(device_type='cuda', dtype=torch.float16):
+        outputs = model_bert(**inputs)
+        last_hidden_state = outputs.hidden_states[-1]
+
+        # 只取 CLS token 的嵌入
+        cls_embedding = last_hidden_state[:, 0, :].cpu().numpy()
+        cls_embedding = cls_embedding.reshape(1, 1, cls_embedding.shape[1])  # Reshape
+
+    return torch.tensor(cls_embedding)
+    
+    
+tokenizer = AutoTokenizer.from_pretrained("BERT_MODEL_PATH")
+model_bert = AutoModelForMaskedLM.from_pretrained("BERT_MODEL_PATH", output_hidden_states=True)
+
+
+df = pd.read_csv("DATA_PATH", encoding='gbk')
+label_encoder = LabelEncoder()
+label_encoder.fit_transform(df['机器学习编码'])
+
+
+input_dim = 768
+hidden_dim = 512
+output_dim = len(label_encoder.classes_)
+model_lstm = TextClassifier(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim)
+model_lstm.load_state_dict(torch.load("20241209-161139-epochs1000-lr0.0001-acc96.96.pth", map_location=torch.device('cpu')))
+model_lstm.eval()
+
+
+text = "工作人员未正确佩带安全帽"
+emb = get_embedding(text, tokenizer, model_bert)
+with torch.no_grad():
+    outputs = model_lstm(emb)
+    _, predicted = torch.max(outputs, 1)
+
+print(label_encoder.inverse_transform(predicted.numpy())[0])
+```
+
+输出：
+```text
+HU4
+```
+
+## 项目结构
+```
+LiGC
+·
+├── README.md
+├── public
+├── py
+│   ├── chinese-roberta-wwm-ext  # bert embedding模型文件
+│   ├── data
+│   │   ├── DATA.csv
+│   │   └── TW1字典.xlsx
+│   ├── main.py  # 启动api主程序
+│   ├── model
+│   │   └── 20241209-161139-epochs1000-lr0.0001-acc96.96.pth
+│   ├── src
+│   │   ├── config.py  # 配置文件
+│   │   ├── config.py.example  # 配置文件示例
+│   │   ├── data_init.py  # 数据初始化
+│   │   ├── data_insert.py  # es数据库初始化
+│   │   ├── dataset.py  # 数据集结构
+│   │   ├── es.py  # es相关接口
+│   │   ├── model.py  # 分类模型结构
+│   │   ├── predict.py  # 分类模型推理
+│   │   ├── sql.py  # sql操作
+│   │   └── train.py  # 分类模型训练
+│   └── test_api.py  # 测试api可用性
+├── related_files  # 相关文件
+├── src    # vue源代码
+│   ├── App.vue  # 主组件
+│   ├── assets
+│   │   ├── base.css
+│   │   ├── logo.svg
+│   │   └── main.css
+│   ├── components
+│   │   ├── Dashboard.vue  # 主页面
+│   │   ├── Login.vue  # 登陆页面
+│   │   └── Register.vue  # 注册页面
+│   ├── main.ts
+│   ├── router
+│   │   └── index.ts
+│   └── type
+│       └── inters.ts
+├── README.md
+├── .gitignore
+├── env.d.ts
+├── package-lock.json
+├── package.json
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
+```
+
+
+## 声明
+本项目遵循 [MIT 许可证](https://opensource.org/licenses/MIT)。  
+版权所有 © 2025 soldierbai。  
+免责声明：本项目仅供学习和研究使用，作者不对因使用本项目而产生的任何后果负责。
