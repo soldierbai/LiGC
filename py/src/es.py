@@ -24,7 +24,7 @@ def get_embedding(text, tokenizer, model_bert):
     return cls_embedding.tolist()[0][0]
 
 
-def vector_search(text, tokenizer, model_bert, index_name='cr_index', k=10, fields = None):
+def vector_search(text, tokenizer, model_bert, index_name='cr_index', k=10, fields=None):
     """
     执行向量搜索，找出最相关的 k 条数据
 
