@@ -131,20 +131,30 @@ def chat(inputs, messages, model="deepseek-r1:32b", intention_model="deepseek-r1
     intention = get_intention(inputs, model=intention_model)
     # print(intention)
     if intention and "NULL" not in intention:
-        relations = "下面是你根据向量查询到的系统中相关的十条故障历史数据：（请根据这些数据回答用户的问题）\n" + "\n".join(json.dumps(item["_source"], ensure_ascii=False, indent=4) for item in vector_search(intention, tokenizer, model_bert))
+        results = vector_search(intention, tokenizer, model_bert)
+
+        data = []
+        for item in results:
+            source = item["_source"]
+            fields = ['cr编号', 'CR主题', '机器学习编码', '电厂ID', '电厂名称', '发生日期', '发生时间', '发生地点', '机组号', '机组状态', 'CR来源', 'CR相关性', '设备/人因分类', '处理方式', '状态描述', '后果及潜在后果', '已采取行动', '直接原因', '进一步行动建议', '填写日期', '签发日期', 'CR状态']
+            data.append({k: v for k, v in source.items() if k in fields})
+
+        df = pd.DataFrame(data)
+
+        relations = "下面是你根据向量查询到的系统中相关的十条故障历史数据：（请根据这些数据回答用户的问题）\n" + df.to_string(index=False)
     else:
         relations = ""
 
     if relations:
         classifier_answer = predice_mlcode(text=intention, model_bert=model_bert, tokenizer=tokenizer, model_lstm=model_lstm, label_encoder=label_encoder)
         relations += f'''
-下面是你所内置的分类模型所得到的用户所提到的故障的机器学习编码结果：【{classifier_answer}】
+下面是你所内置的分类模型所得到的用户所提到的故障的机器学习编码结果：{classifier_answer}
 注意，此编码结果只在用户询问机器学习编码时，作为参考告知用户，其他情况不要提及。
-如果用户让你推荐机器学习编码，上面的结果【必须】告知用户，但是只能参考，不能单独作为最终答案，还需要通过相关历史故障数据综合得出结果。
+如果用户让你推荐机器学习编码，上面的结果必须告知用户，但是只能参考，不能单独作为最终答案，还需要通过相关历史故障数据综合得出结果。
 
 用户输入：\n
 '''
-    print(relations)
+    # print(relations)
     thinking = True
 
     for i in range(len(messages)):
