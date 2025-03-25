@@ -349,6 +349,8 @@ LiGC
 │       └── inters.ts
 ├── README.md
 ├── .gitignore
+├── quick_start.sh
+├── requirements.txt  # python依赖
 ├── env.d.ts
 ├── package-lock.json
 ├── package.json
