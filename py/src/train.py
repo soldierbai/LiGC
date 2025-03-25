@@ -12,6 +12,8 @@ from torch.cuda.amp import autocast
 import datetime
 import matplotlib.pyplot as plt
 from .config import data_path, bert_model_path
+from .model import TextClassifier
+from .dataset import TextDataset
 
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
@@ -57,16 +59,7 @@ train_embeddings = get_embeddings(X_train.tolist(), batch_size=128)
 print("Generating test embeddings...")
 test_embeddings = get_embeddings(X_test.tolist(), batch_size=128)
 
-class TextDataset(Dataset):
-    def __init__(self, embeddings, labels):
-        self.X = torch.tensor(embeddings, dtype=torch.float32)
-        self.y = torch.tensor(labels, dtype=torch.long)
 
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
 
 train_dataset = TextDataset(train_embeddings, y_train)
 test_dataset = TextDataset(test_embeddings, y_test)
@@ -74,20 +67,6 @@ test_dataset = TextDataset(test_embeddings, y_test)
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=16)
 
-
-class TextClassifier(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, num_layers=2, dropout=0.5):
-        super(TextClassifier, self).__init__()
-        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True, dropout=dropout)
-        self.fc = nn.Linear(hidden_dim, output_dim)
-        self.dropout = nn.Dropout(0.5)
-
-    def forward(self, x):
-        # x: (batch_size, seq_len, input_size)
-        x, (hn, cn) = self.lstm(x)
-        x = self.dropout(hn[-1])  # 取 LSTM 最后一个隐层的输出
-        x = self.fc(x)
-        return x
 
 input_dim = 768
 hidden_dim = 512

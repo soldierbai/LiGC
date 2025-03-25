@@ -4,7 +4,13 @@ from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
 from src.config import ds_url
 from src.es import vector_search
+from src.config import bert_model_path, data_path, data_path_json, classifier_model_path
+from src.model import TextClassifier
+from src.predict import predice_mlcode
 from transformers import AutoTokenizer, AutoModelForMaskedLM
+import torch
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 import re
 import json
 
@@ -12,8 +18,21 @@ app = Flask(__name__)
 CORS(app, resources=r'/*')
 
 warnings.filterwarnings('ignore')
-tokenizer = AutoTokenizer.from_pretrained("py/chinese-roberta-wwm-ext")
-model_bert = AutoModelForMaskedLM.from_pretrained("py/chinese-roberta-wwm-ext", output_hidden_states=True)
+tokenizer = AutoTokenizer.from_pretrained(bert_model_path)
+model_bert = AutoModelForMaskedLM.from_pretrained(bert_model_path, output_hidden_states=True)
+
+
+df = pd.read_csv(data_path, encoding='gbk')
+label_encoder = LabelEncoder()
+label_encoder.fit_transform(df['机器学习编码'])
+
+
+input_dim = 768
+hidden_dim = 512
+output_dim = len(label_encoder.classes_)
+model_lstm = TextClassifier(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim)
+model_lstm.load_state_dict(torch.load(classifier_model_path, map_location=torch.device('cpu')))
+model_lstm.eval()
 
 def remove_think_tags(text):
     pattern = r'<think>.*?</think>'
@@ -115,7 +134,14 @@ def chat(inputs, messages, model="deepseek-r1:32b", intention_model="deepseek-r1
         relations = "下面是你根据向量查询到的系统中相关的十条故障历史数据：（请根据这些数据回答用户的问题）\n" + "\n".join(json.dumps(item, ensure_ascii=False) for item in vector_search(intention, tokenizer, model_bert)) + "\n\n用户输入："
     else:
         relations = ""
-    # print(relations)
+
+    if relations:
+        classifier_answer = predice_mlcode(text=intention, model_bert=model_bert, tokenizer=tokenizer, model_lstm=model_lstm, label_encoder=label_encoder)
+        relations += f'''
+下面是你所内置的分类模型所得到的用户所提到的故障的机器学习编码结果：{classifier_answer}
+注意，此编码结果只在用户询问机器学习编码时，作为参考告知用户，其他情况不要提及。
+如果用户让你推荐机器学习编码，上面的结果必须告知用户，但是只能参考，不能单独作为最终答案，还需要通过相关历史故障数据综合得出结果。
+'''
     thinking = True
 
     for i in range(len(messages)):

@@ -36,7 +36,7 @@ npm install -i
 
 ### ES
 
-可在 https://www.elastic.co/downloads/elasticsearch 中选择版本下载。下载后使用如下命令部署：
+可点击 [此处](https://www.elastic.co/downloads/elasticsearch) 中选择版本下载。下载后使用如下命令部署：
 
 ```bash
 cd elasticsearch-8.17.3
@@ -47,7 +47,7 @@ bash bin/elasticsearch
 
 ### Ollama
 
-可在 https://ollama.com 中下载，下载后使用桌面端app打开或执行：
+可点击 [此处](https://ollama.com) 下载，下载后使用桌面端app打开或执行：
 
 ```bash
 ollama serve
@@ -63,7 +63,7 @@ ollama run deepseek-r1:32b
 > 注: 本项目运行环境内存大小为32G，受到内存限制，目前至多只能支持deepseek-r1的32B蒸馏版。
 ### Embedding Model
 
-本项目所使用的编码模型为 `chinese-roberta-wwm-ext` ，可在 https://huggingface.co/hfl/chinese-roberta-wwm-ext
+本项目所使用的编码模型为 `chinese-roberta-wwm-ext` ，可在 [HuggingFace](https://huggingface.co/hfl/chinese-roberta-wwm-ext)
 获取相关资源，也可以使用其他类似编码模型（要求`dim=768`)
 
 下载后推荐置于 `~/LiGC/py/` 下，命名为 `chinese-roberta-wwm-ext`
@@ -130,7 +130,7 @@ python py/src/data_insert.py
 python py/main.py
 ```
 
-```bash
+```text
 (.venv) soldierbai@xxx LiGC % python py/main.py
 Some weights of the model checkpoint at py/chinese-roberta-wwm-ext were not used when initializing BertForMaskedLM: ['bert.pooler.dense.bias', 'bert.pooler.dense.weight', 'cls.seq_relationship.bias', 'cls.seq_relationship.weight']
 - This IS expected if you are initializing BertForMaskedLM from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
@@ -206,7 +206,13 @@ soldierbai@xxx LiGC % npm  run dev
 ```bash
 python py/src/main.py
 ```
+
 训练效果：
+
 ![损失曲线](./related_files/loss.jpg)
+
 准确率：
+
 ![准确率](./related_files/acc.jpg)
+
+### 分类模型推理
