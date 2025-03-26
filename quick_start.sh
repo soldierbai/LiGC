@@ -1,13 +1,23 @@
 #!/bin/bash
 
-es/bin/elasticsearch & pid1=$!
-ollama serve & pid2=$!
-python py/main.py & pid3=$!
-npm run dev & pid4=$!
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
-trap 'pkill $pid1 $pid2 $pid3 $pid4; exit' SIGINT
+osascript <<EOF
+tell application "Terminal"
+    activate
 
-wait $pid1 || echo "elasticsearch failed"
-wait $pid2 || echo "ollama serve failed"
-wait $pid3 || echo "python main.py failed"
-wait $pid4 || echo "npm run dev failed"
+    do script "cd '$SCRIPT_DIR/es/bin' && ./elasticsearch"
+
+    tell application "System Events" to keystroke "t" using {command down}
+    delay 0.5
+    do script "cd '$SCRIPT_DIR' && ollama serve" in front window
+
+    tell application "System Events" to keystroke "t" using {command down}
+    delay 0.5
+    do script "cd '$SCRIPT_DIR' && source .venv/bin/activate && python py/main.py" in front window
+
+    tell application "System Events" to keystroke "t" using {command down}
+    delay 0.5
+    do script "cd '$SCRIPT_DIR' && npm run dev" in front window
+end tell
+EOF
