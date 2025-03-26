@@ -137,7 +137,7 @@ def get_embedding(text, tokenizer, model_bert):
 ## 数据准备
 
 首先存储原始csv数据，在 `py/scr` 下新建文件 `config.py` 设置es基本信息和数据、模型路径等信息：
-```python config.py
+```python
 USER = "elastic"
 PASSWORD = "xxx"
 
