@@ -144,6 +144,7 @@ PASSWORD = "xxx"
 data_path = 'py/data/DATA.csv'
 data_path_json = 'py/data/DATA.json'
 bert_model_path = 'py/chinese-roberta-wwm-ext'
+classifier_model_path = 'py/model/20241209-161139-epochs1000-lr0.0001-acc96.96.pth'
 ds_url = "http://localhost:11434/api/chat"
 ```
 然后执行：
