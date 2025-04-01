@@ -131,15 +131,22 @@ def chat(inputs, messages, model="deepseek-r1:32b", intention_model="deepseek-r1
     intention = get_intention(inputs, model=intention_model)
     # print(intention)
     if intention and "NULL" not in intention:
+
+        print(f"检索文本：{intention}")
+
         results = vector_search(intention, tokenizer, model_bert)
 
         data = []
         for item in results:
             source = item["_source"]
-            fields = ['cr编号', 'CR主题', '机器学习编码', '电厂ID', '电厂名称', '发生日期', '发生时间', '发生地点', '机组号', '机组状态', 'CR来源', 'CR相关性', '设备/人因分类', '处理方式', '状态描述', '后果及潜在后果', '已采取行动', '直接原因', '进一步行动建议', '填写日期', '签发日期', 'CR状态']
+            fields = ['cr编号', 'CR主题', '机器学习编码', '电厂ID', '电厂名称', '发生日期', '发生时间', '发生地点', '机组号', '机组状态', 'CR来源', 'CR相关性', '设备/人因分类', '处理方式', '状态描述',
+                      '后果及潜在后果', '已采取行动', '直接原因', '进一步行动建议', '填写日期', '签发日期', 'CR状态']
             data.append({k: v for k, v in source.items() if k in fields})
 
         df = pd.DataFrame(data)
+
+        for index, row in df.iterrows():
+            print(f"CR编号: {row['cr编号']}, CR主题: {row['CR主题']}")
 
         relations = "下面是你根据向量查询到的系统中相关的十条故障历史数据：（请根据这些数据回答用户的问题）\n" + df.to_string(index=False)
     else:
